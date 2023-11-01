@@ -4323,20 +4323,20 @@ app.post('/send-api-kit-email', async (req, res) => {
 
 
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
-});
-
-// const certificate = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/fullchain.const privateKey = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/privkey.pemconst, credentials = { key: privateKey, cert: certificate })
-
-// const httpsServer = https.createServer(credentials, app);
-
-// const PORT = 3000; // Port for HTTPS
-
-// httpsServer.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT} (HTTPS)`);
+// const PORT = 3000;
+// app.listen(PORT, () => {
+//   console.log(`Server started on port ${PORT}`);
 // });
+
+const certificate = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/fullchain.const privateKey = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/privkey.pemconst, credentials = { key: privateKey, cert: certificate })
+
+const httpsServer = https.createServer(credentials, app);
+
+const PORT = 3000; // Port for HTTPS
+
+httpsServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} (HTTPS)`);
+});
 
 // ---------------------------------------
 
