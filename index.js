@@ -311,7 +311,9 @@ app.post('/add-deal', async (req, res) => {
             role: role,
             email: email,
             fullname: fullname,
-            parent_id: primaryUserId
+            parent_id: primaryUserId,
+            configuretype: 1, // Set configureType to 1
+            approvedtype: 1 
         });
 
 
@@ -728,9 +730,6 @@ app.post('/sendPDFByEmail', (req, res) => {
     res.json({ message: 'Email sent successfully' });
   });
 });
-
-
-// Create an endpoint to retrieve data of a particular user from providerref table
 app.get('/get_providerplanref/:user_id', async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -741,10 +740,15 @@ app.get('/get_providerplanref/:user_id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    // Fetch data from the providerref table for the given user_id
-    const providerData = await knex('providerref').where({ user_id }).first();
+    // Determine the ID to use for fetching provider data
+    // Check if the user has a parent ID
+    const parentId = user.parent_id; // Assuming 'parent_id' is the column name for parent ID in the 'users' table
+    const idToUse = parentId || user_id;
+
+    // Fetch data from the providerref table for the determined ID
+    const providerData = await knex('providerref').where({ user_id: idToUse }).first();
     if (!providerData) {
-      return res.status(404).json({ success: false, message: 'Provider data not found for this user.' });
+      return res.status(404).json({ success: false, message: 'Provider data not found.' });
     }
 
     res.json({ success: true, providerData });
@@ -753,6 +757,31 @@ app.get('/get_providerplanref/:user_id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching provider data.' });
   }
 });
+
+
+// Create an endpoint to retrieve data of a particular user from providerref table
+// app.get('/get_providerplanref/:user_id', async (req, res) => {
+//   try {
+//     const { user_id } = req.params;
+
+//     // Check if the user exists in the users table
+//     const user = await knex('users').where({ id: user_id }).first();
+//     if (!user) {
+//       return res.status(404).json({ success: false, message: 'User not found.' });
+//     }
+
+//     // Fetch data from the providerref table for the given user_id
+//     const providerData = await knex('providerref').where({ user_id }).first();
+//     if (!providerData) {
+//       return res.status(404).json({ success: false, message: 'Provider data not found for this user.' });
+//     }
+
+//     res.json({ success: true, providerData });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: 'Error fetching provider data.' });
+//   }
+// });
 app.get('/get_transactions/:user_id', async (req, res) => {
     try {
       const { user_id } = req.params;
@@ -3783,25 +3812,25 @@ app.post('/getusers/:id'  , async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-// app.post('/getparentusers/:parent_id'  , async (req, res) => {
-//   const { id } = req.params;
+app.post('/getparentusers/:parent_id'  , async (req, res) => {
+  const { id } = req.params;
 
-//   try {
-//     const user = await knex('users')
-//       .select('*')
-//       .where('parent_id', id)
-//       .first();
+  try {
+    const user = await knex('users')
+      .select('*')
+      .where('parent_id', id)
+      .first();
 
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-//     res.json(user);
-//   } catch (error) {
-//     console.error('Error fetching user:', error);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 // app.post('/upload-pdf/:userId', upload.single('pdf'), async (req, res) => {
 //   const { userId } = req.params;
 //   const { filename, path: filePath } = req.file;
@@ -4061,6 +4090,99 @@ app.post('/transactionpdf', async (req, res) => {
     doc.end();
   }
 });
+
+// async function getTransactionsByParentId(parentId) {
+//   return knex('transactionsreport')
+//       .join('users', 'transactionsreport.user_id', 'users.id')
+//       .select('transactionsreport.*') // or specify the columns you need
+//       .where('users.parent_id', parentId);
+// }
+
+
+
+// app.get('/api/transactions/by-parent/:parentId', async (req, res) => {
+//   try {
+//       const parentId = parseInt(req.params.parentId);
+//       if (isNaN(parentId)) {
+//           return res.status(400).send('Invalid parent ID');
+//       }
+
+//       const transactions = await getTransactionsByParentId(parentId);
+//       res.json(transactions);
+//   } catch (err) {
+//       console.error(err.message);
+//       res.status(500).send('Server error');
+//   }
+// });
+
+
+app.get('/api/transactions/parent/:parentId', async (req, res) => {
+  console.log($parentId.runtime)
+  try {
+    const parentId = parseInt(req.params.parentId);
+      if (isNaN(parentId)) {
+          return res.status(400).send('Invalid parent ID');
+      }
+
+      const transactions = await knex('transactionsreport')
+          .join('users', 'transactionsreport.user_id', 'users.id')
+          .select('transactionsreport.*')
+          .where('users.parent_id', parentId);
+
+      res.json(transactions);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
+// app.get('/api/transactions/by-child/:childId', async (req, res) => {
+//   try {
+//       const childId = parseInt(req.params.childId);
+//       if (isNaN(childId)) {
+//           return res.status(400).send('Invalid child user ID');
+//       }
+
+//       const transactions = await knex('transactionsreport')
+//           .join('users', 'transactionsreport.user_id', 'users.id')
+//           .select('transactionsreport.*')
+//           .where('users.id', knex('users').select('parent_id').where('id', childId));
+
+//       res.json(transactions);
+//   } catch (err) {
+//       console.error(err);
+//       res.status(500).send('Internal Server Error');
+//   }
+// });
+app.get('/api/transactions/by-child/:childId', async (req, res) => {
+  try {
+      const childId = parseInt(req.params.childId);
+      if (isNaN(childId)) {
+          return res.status(400).send('Invalid child user ID');
+      }
+
+      // Fetch the parent_id for the childId
+      const parentUser = await knex('users').select('parent_id').where('id', childId).first();
+
+      if (!parentUser || !parentUser.parent_id) {
+          return res.status(404).send('Parent user not found');
+      }
+
+      // Fetch transactions for the parent user
+      const transactions = await knex('transactionsreport')
+          .join('users', 'transactionsreport.user_id', 'users.id')
+          .select('transactionsreport.*')
+          .where('users.id', parentUser.parent_id);
+
+      res.json(transactions);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Internal Server Error');
+  }
+});
+
+
+
 
 
 // app.post('/transactionreport', async (req, res) => {
@@ -4323,20 +4445,20 @@ app.post('/send-api-kit-email', async (req, res) => {
 
 
 
-// const PORT = 3000;
-// app.listen(PORT, () => {
-//   console.log(`Server started on port ${PORT}`);
-// });
-
-const certificate = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/fullchain.const privateKey = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/privkey.pemconst, credentials = { key: privateKey, cert: certificate })
-
-const httpsServer = https.createServer(credentials, app);
-
-const PORT = 3000; // Port for HTTPS
-
-httpsServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (HTTPS)`);
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
+
+// const certificate = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/fullchain.const privateKey = fs.readFileSync('/etc/letsencrypt/live/deals.yexah.com/privkey.pemconst, credentials = { key: privateKey, cert: certificate })
+
+// const httpsServer = https.createServer(credentials, app);
+
+// const PORT = 3000; // Port for HTTPS
+
+// httpsServer.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT} (HTTPS)`);
+// });
 
 // ---------------------------------------
 
@@ -4413,5 +4535,13 @@ httpsServer.listen(PORT, () => {
 
 
 
+// const certificatePath = '/etc/letsencrypt/live/deals.yexah.com/fullchain.pem';
+// const privateKeyPath = '/etc/letsencrypt/live/deals.yexah.com/privkey.pem';
 
+// // Reading the certificate and private key
+// const certificate = fs.readFileSync(certificatePath, 'utf8');
+// const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+
+// // Creating credentials object
+// const credentials = { key: privateKey, cert: certificate };
 
